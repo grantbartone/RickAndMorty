@@ -5,11 +5,9 @@
  * @format
  */
 
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 import {
-  ActivityIndicator,
   Alert,
-  Button,
   FlatList,
   StatusBar,
   StyleSheet,
@@ -20,6 +18,7 @@ import {
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import Item from '../components/Item';
+import {characterApi} from '../services/character';
 
 const ListEmptyComponent = (isLoading: boolean) => {
   if (isLoading) {
@@ -33,40 +32,35 @@ const ListEmptyComponent = (isLoading: boolean) => {
   );
 };
 
+/* This branch uses Redux Toolkit (RTK) Query to fetch the first page of character data to display
+ * is the FlatList along with Detail screen navigation. It needs work to propertly store the data
+ * in the Redux store, support pagination, pull-to-refresh, and the Reset button.
+ */
 function Home(): JSX.Element {
-  const [isLoading, setIsLoading] = useState(false);
-  const [data, setData] = useState<any[]>([]);
-  const [page, setPage] = useState(1);
+  const {data, error, isLoading} =
+    characterApi.endpoints.getCharacterByPage.useQuery('1');
 
   const isDarkMode = useColorScheme() === 'dark';
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
-  useEffect(() => {
-    setIsLoading(true);
-    fetch(`https://rickandmortyapi.com/api/character?page=${page}`)
-      .then(res => res.json())
-      .then(resJson => {
-        setData(prev => [...prev, ...resJson.results]);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        Alert.alert('Something went wrong! Try again.');
-      });
-  }, [page]);
+  // const handleReset = () => {
+  //   Alert.alert('The launch state has been reset.');
+  //   handleRefresh();
+  // };
 
-  const handleReset = () => {
-    Alert.alert('The launch state has been reset.');
-    handleRefresh();
-  };
+  // const handleRefresh = () => {
+  //   setData([]);
+  //   setPage(1);
+  // };
 
-  const handleRefresh = () => {
-    setData([]);
-    setPage(1);
-  };
+  // const handleLoadMore = () => setPage(page + 1);
 
-  const handleLoadMore = () => setPage(page + 1);
+  if (error) {
+    Alert.alert('Something went wrong! Try again.');
+    return null;
+  }
 
   return (
     <View style={[styles.container, backgroundStyle]}>
@@ -74,17 +68,17 @@ function Home(): JSX.Element {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundStyle.backgroundColor}
       />
-      <Button title="Reset" onPress={handleReset} />
+      {/* <Button title="Reset" onPress={handleReset} /> */}
       <FlatList
-        data={data}
+        data={data?.results || []}
         renderItem={({item}) => <Item {...item} />}
         keyExtractor={(_, idx) => `${idx}`} // Replaced `item.id` with `idx` due to duplicate IDs
-        onRefresh={handleRefresh}
+        // onRefresh={handleRefresh}
         refreshing={isLoading}
         ListEmptyComponent={() => ListEmptyComponent(isLoading)}
-        ListFooterComponent={ActivityIndicator}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
+        // ListFooterComponent={ActivityIndicator}
+        // onEndReached={handleLoadMore}
+        // onEndReachedThreshold={0.5}
       />
     </View>
   );
